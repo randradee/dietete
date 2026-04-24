@@ -1,35 +1,26 @@
+using DieTete.Application.Cqrs;
 using DieTete.Application.ListaCompras.Dtos;
 using DieTete.Domain.Interfaces.Repositories;
 using ErrorOr;
-using MediatR;
 
 namespace DieTete.Application.ListaCompras.Queries.ObterListaCompras;
 
 public class ObterListaComprasHandler(
-    IListaComprasRepositorio repositorio) : IRequestHandler<ObterListaComprasQuery, ErrorOr<List<ListaComprasDto>>>
+    IListaComprasRepositorio repositorio) : IManipuladorConsulta<ObterListaComprasQuery, List<ListaComprasDto>>
 {
-    public async Task<ErrorOr<List<ListaComprasDto>>> Handle(ObterListaComprasQuery request, CancellationToken ct)
+    public async Task<ErrorOr<List<ListaComprasDto>>> ExecutarAsync(ObterListaComprasQuery consulta, CancellationToken ct = default)
     {
         IReadOnlyList<Domain.Entities.ListaCompras> listas;
 
-        // Buscar por grupo familiar se fornecido
-        if (request.GrupoFamiliarId.HasValue)
-        {
-            listas = await repositorio.ObterPorGrupoFamiliarAsync(request.GrupoFamiliarId.Value, request.Periodo, ct);
-        }
+        if (consulta.GrupoFamiliarId.HasValue)
+            listas = await repositorio.ObterPorGrupoFamiliarAsync(consulta.GrupoFamiliarId.Value, consulta.Periodo, ct);
         else
-        {
-            listas = await repositorio.ObterPorUsuarioAsync(request.UsuarioId, request.Periodo, ct);
-        }
+            listas = await repositorio.ObterPorUsuarioAsync(consulta.UsuarioId, consulta.Periodo, ct);
 
-        // Filtrar por tipo se fornecido
-        if (request.Tipo.HasValue)
-        {
-            listas = listas.Where(l => l.Tipo == request.Tipo.Value).ToList();
-        }
+        if (consulta.Tipo.HasValue)
+            listas = listas.Where(l => l.Tipo == consulta.Tipo.Value).ToList();
 
-        var resultado = listas.Select(MapearParaDto).ToList();
-        return resultado;
+        return listas.Select(MapearParaDto).ToList();
     }
 
     private static ListaComprasDto MapearParaDto(Domain.Entities.ListaCompras lista)
@@ -50,7 +41,6 @@ public class ObterListaComprasHandler(
             Tipo: lista.Tipo.ToString(),
             DataInicio: lista.DataInicio,
             DataFim: lista.DataFim,
-            Itens: itens
-        );
+            Itens: itens);
     }
 }

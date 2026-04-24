@@ -1,8 +1,9 @@
+using DieTete.Application.Cqrs;
 using DieTete.Application.ListaCompras.Commands.AtualizarItemLista;
 using DieTete.Application.ListaCompras.Commands.GerarListaCompras;
+using DieTete.Application.ListaCompras.Dtos;
 using DieTete.Application.ListaCompras.Queries.ObterListaCompras;
 using DieTete.Domain.Enums;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -11,7 +12,7 @@ namespace DieTete.Api.Controllers;
 
 [Route("api/listas-compras")]
 [Authorize]
-public class ListaComprasController(IMediator mediator) : BaseController
+public class ListaComprasController(IDispatcher dispatcher) : BaseController
 {
     [HttpPost("gerar")]
     public async Task<IActionResult> Gerar(GerarListaComprasComando comando, CancellationToken ct)
@@ -19,7 +20,7 @@ public class ListaComprasController(IMediator mediator) : BaseController
         var usuarioId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         var comandoComUsuario = comando with { UsuarioId = usuarioId };
 
-        var resultado = await mediator.Send(comandoComUsuario, ct);
+        var resultado = await dispatcher.EnviarAsync<GerarListaComprasComando, ListaComprasDto>(comandoComUsuario, ct);
         return resultado.Match(dto => Ok(dto), TratarErros);
     }
 
@@ -33,7 +34,7 @@ public class ListaComprasController(IMediator mediator) : BaseController
         var usuarioId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
         var query = new ObterListaComprasQuery(usuarioId, grupoFamiliarId, periodo, tipo);
-        var resultado = await mediator.Send(query, ct);
+        var resultado = await dispatcher.ConsultarAsync<ObterListaComprasQuery, List<ListaComprasDto>>(query, ct);
         return resultado.Match(dtos => Ok(dtos), TratarErros);
     }
 
@@ -47,7 +48,7 @@ public class ListaComprasController(IMediator mediator) : BaseController
         var usuarioId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         var comandoAtualizado = comando with { ListaId = listaId, ItemId = itemId, UsuarioId = usuarioId };
 
-        var resultado = await mediator.Send(comandoAtualizado, ct);
+        var resultado = await dispatcher.EnviarAsync<AtualizarItemListaComando, ItemListaComprasDto>(comandoAtualizado, ct);
         return resultado.Match(dto => Ok(dto), TratarErros);
     }
 }

@@ -1,36 +1,27 @@
+using DieTete.Application.Cqrs;
 using DieTete.Application.ListaCompras.Dtos;
 using DieTete.Domain.Errors;
 using DieTete.Domain.Interfaces.Repositories;
 using ErrorOr;
-using MediatR;
 
 namespace DieTete.Application.ListaCompras.Commands.AtualizarItemLista;
 
 public class AtualizarItemListaHandler(
-    IListaComprasRepositorio repositorio) : IRequestHandler<AtualizarItemListaComando, ErrorOr<ItemListaComprasDto>>
+    IListaComprasRepositorio repositorio) : IManipuladorComando<AtualizarItemListaComando, ItemListaComprasDto>
 {
-    public async Task<ErrorOr<ItemListaComprasDto>> Handle(AtualizarItemListaComando request, CancellationToken ct)
+    public async Task<ErrorOr<ItemListaComprasDto>> ExecutarAsync(AtualizarItemListaComando comando, CancellationToken ct = default)
     {
-        var lista = await repositorio.ObterPorIdAsync(request.ListaId, ct);
+        var lista = await repositorio.ObterPorIdAsync(comando.ListaId, ct);
 
-        if (lista is null)
-        {
+        if (lista is null || lista.CriadoPorId != comando.UsuarioId)
             return ErrosListaCompras.NaoEncontrada;
-        }
 
-        if (lista.CriadoPorId != request.UsuarioId)
-        {
-            return ErrosListaCompras.NaoEncontrada;
-        }
-
-        var item = lista.Itens.FirstOrDefault(i => i.Id == request.ItemId);
+        var item = lista.Itens.FirstOrDefault(i => i.Id == comando.ItemId);
 
         if (item is null)
-        {
             return ErrosListaCompras.ItemNaoEncontrado;
-        }
 
-        item.Atualizar(request.Nome, request.Quantidade, request.Unidade);
+        item.Atualizar(comando.Nome, comando.Quantidade, comando.Unidade);
         await repositorio.SalvarAlteracoesAsync(ct);
 
         return MapearParaDto(item);
@@ -44,6 +35,5 @@ public class AtualizarItemListaHandler(
             Unidade: item.Unidade.ToString(),
             Categoria: item.Categoria.ToString(),
             EditadoManualmente: item.EditadoManualmente,
-            PrecoEstimado: item.PrecoEstimado
-        );
+            PrecoEstimado: item.PrecoEstimado);
 }

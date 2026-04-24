@@ -1,52 +1,32 @@
+using DieTete.Application.Cqrs;
 using DieTete.Application.PlanoDieta.Dtos;
 using DieTete.Domain.Errors;
 using DieTete.Domain.Interfaces.Repositories;
-using DieTete.Domain.Interfaces.Services;
 using ErrorOr;
-using MediatR;
 
 namespace DieTete.Application.PlanoDieta.Queries.ObterPlanoDieta;
 
 public class ObterPlanoDietaHandler(
-    IPlanoDietaRepositorio repositorio) : IRequestHandler<ObterPlanoDietaQuery, ErrorOr<PlanoDietaDto>>
+    IPlanoDietaRepositorio repositorio) : IManipuladorConsulta<ObterPlanoDietaQuery, PlanoDietaDto>
 {
-    public async Task<ErrorOr<PlanoDietaDto>> Handle(ObterPlanoDietaQuery request, CancellationToken ct)
+    public async Task<ErrorOr<PlanoDietaDto>> ExecutarAsync(ObterPlanoDietaQuery consulta, CancellationToken ct = default)
     {
-        var plano = await repositorio.ObterPorIdAsync(request.Id, ct);
+        var plano = await repositorio.ObterPorIdAsync(consulta.Id, ct);
 
-        if (plano is null)
-        {
+        if (plano is null || plano.UsuarioId != consulta.UsuarioId)
             return ErrosPlanoDieta.NaoEncontrado;
-        }
 
-        if (plano.UsuarioId != request.UsuarioId)
-        {
-            return ErrosPlanoDieta.NaoEncontrado;
-        }
-
-        // Contar itens sem confiança
         int itensSemConfianca = 0;
+        int totalItens = 0;
         foreach (var dia in plano.Dias)
         {
             foreach (var refeicao in dia.Refeicoes)
             {
                 foreach (var item in refeicao.Itens)
                 {
-                    if (item.NecessitaRevisao)
-                    {
-                        itensSemConfianca++;
-                    }
+                    totalItens++;
+                    if (item.NecessitaRevisao) itensSemConfianca++;
                 }
-            }
-        }
-
-        // Contar total de itens
-        int totalItens = 0;
-        foreach (var dia in plano.Dias)
-        {
-            foreach (var refeicao in dia.Refeicoes)
-            {
-                totalItens += refeicao.Itens.Count;
             }
         }
 

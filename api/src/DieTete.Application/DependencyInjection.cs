@@ -1,6 +1,5 @@
-using DieTete.Application.Behaviors;
+using DieTete.Application.Cqrs;
 using FluentValidation;
-using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
@@ -10,14 +9,28 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddMediatR(cfg =>
-            cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+        var assembly = Assembly.GetExecutingAssembly();
 
-        services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+        services.AddValidatorsFromAssembly(assembly);
+        services.AddScoped<IDispatcher, Dispatcher>();
 
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ComportamentoValidacao<,>));
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ComportamentoLog<,>));
+        RegistrarManipuladores(services, assembly, typeof(IManipuladorComando<,>));
+        RegistrarManipuladores(services, assembly, typeof(IManipuladorConsulta<,>));
 
         return services;
+    }
+
+    private static void RegistrarManipuladores(
+        IServiceCollection services,
+        Assembly assembly,
+        Type tipoInterfaceAberto)
+    {
+        foreach (var tipo in assembly.GetTypes().Where(t => t.IsClass && !t.IsAbstract))
+        {
+            foreach (var iface in tipo.GetInterfaces().Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == tipoInterfaceAberto))
+            {
+                services.AddScoped(iface, tipo);
+            }
+        }
     }
 }

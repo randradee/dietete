@@ -1,9 +1,9 @@
+using DieTete.Application.Cqrs;
 using DieTete.Application.PlanoDieta.Dtos;
 using DieTete.Domain.Errors;
 using DieTete.Domain.Interfaces.Repositories;
 using DieTete.Domain.Interfaces.Services;
 using ErrorOr;
-using MediatR;
 using PlanoDietaEntity = DieTete.Domain.Entities.PlanoDieta;
 
 namespace DieTete.Application.PlanoDieta.Commands.EnviarPlanoDieta;
@@ -11,36 +11,28 @@ namespace DieTete.Application.PlanoDieta.Commands.EnviarPlanoDieta;
 public class EnviarPlanoDietaHandler(
     IArmazenamentoArquivo armazenamento,
     IPlanoDietaRepositorio repositorioPlanoDieta,
-    IParsadorPlanoDieta parsador) : IRequestHandler<EnviarPlanoDietaComando, ErrorOr<PlanoDietaDto>>
+    IParsadorPlanoDieta parsador) : IManipuladorComando<EnviarPlanoDietaComando, PlanoDietaDto>
 {
-    public async Task<ErrorOr<PlanoDietaDto>> Handle(EnviarPlanoDietaComando request, CancellationToken ct)
+    public async Task<ErrorOr<PlanoDietaDto>> ExecutarAsync(EnviarPlanoDietaComando comando, CancellationToken ct = default)
     {
-        // Validação de extensão e tamanho
-        if (!request.NomeArquivo.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-        {
+        if (!comando.NomeArquivo.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             return ErrosPlanoDieta.ApenasArquivosPdf;
-        }
 
-        const long tamanhoMaximoBytes = 10 * 1024 * 1024; // 10MB
-        if (request.TamanhoBytes > tamanhoMaximoBytes)
-        {
+        const long tamanhoMaximoBytes = 10 * 1024 * 1024;
+        if (comando.TamanhoBytes > tamanhoMaximoBytes)
             return ErrosPlanoDieta.TamanhoMaximoExcedido;
-        }
 
-        // Salvar PDF
         var caminhoArquivo = await armazenamento.SalvarAsync(
-            request.ConteudoPdf,
-            request.NomeArquivo,
+            comando.ConteudoPdf,
+            comando.NomeArquivo,
             "planos-dieta",
             ct);
 
-        // Criar plano
-        var plano = PlanoDietaEntity.Criar(request.UsuarioId, request.NomeArquivo, caminhoArquivo);
+        var plano = PlanoDietaEntity.Criar(comando.UsuarioId, comando.NomeArquivo, caminhoArquivo);
         await repositorioPlanoDieta.AdicionarAsync(plano, ct);
 
-        // Fazer parsing
-        request.ConteudoPdf.Position = 0; // Reset stream position
-        var resultado = await parsador.ParsearAsync(request.ConteudoPdf, ct);
+        comando.ConteudoPdf.Position = 0;
+        var resultado = await parsador.ParsearAsync(comando.ConteudoPdf, ct);
 
         if (!resultado.Sucesso)
         {
@@ -49,7 +41,6 @@ public class EnviarPlanoDietaHandler(
             return ErrosPlanoDieta.FalhaNoProcessamento;
         }
 
-        // Adicionar dias ao plano
         foreach (var dia in resultado.Dias)
         {
             plano.AdicionarDia(dia);

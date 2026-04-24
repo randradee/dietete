@@ -1,18 +1,18 @@
 using DieTete.Application.Auth.Dtos;
+using DieTete.Application.Cqrs;
 using DieTete.Domain.Errors;
 using DieTete.Domain.Interfaces.Services;
 using ErrorOr;
-using MediatR;
 
 namespace DieTete.Application.Auth.Commands.Registrar;
 
 public class RegistrarHandler(
     IServicoAutenticacao servicoAuth,
-    IServicoToken servicoToken) : IRequestHandler<RegistrarComando, ErrorOr<RespostaAutenticacao>>
+    IServicoToken servicoToken) : IManipuladorComando<RegistrarComando, RespostaAutenticacao>
 {
-    public async Task<ErrorOr<RespostaAutenticacao>> Handle(RegistrarComando request, CancellationToken ct)
+    public async Task<ErrorOr<RespostaAutenticacao>> ExecutarAsync(RegistrarComando comando, CancellationToken ct = default)
     {
-        var resultado = await servicoAuth.RegistrarAsync(request.NomeCompleto, request.Email, request.Senha, ct);
+        var resultado = await servicoAuth.RegistrarAsync(comando.NomeCompleto, comando.Email, comando.Senha, ct);
 
         if (!resultado.Sucesso)
             return resultado.ErroDescricao!.Contains("cadastrado")

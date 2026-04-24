@@ -1,18 +1,18 @@
 using DieTete.Application.Auth.Dtos;
+using DieTete.Application.Cqrs;
 using DieTete.Domain.Errors;
 using DieTete.Domain.Interfaces.Services;
 using ErrorOr;
-using MediatR;
 
 namespace DieTete.Application.Auth.Commands.Entrar;
 
 public class EntrarHandler(
     IServicoAutenticacao servicoAuth,
-    IServicoToken servicoToken) : IRequestHandler<EntrarComando, ErrorOr<RespostaAutenticacao>>
+    IServicoToken servicoToken) : IManipuladorComando<EntrarComando, RespostaAutenticacao>
 {
-    public async Task<ErrorOr<RespostaAutenticacao>> Handle(EntrarComando request, CancellationToken ct)
+    public async Task<ErrorOr<RespostaAutenticacao>> ExecutarAsync(EntrarComando comando, CancellationToken ct = default)
     {
-        var resultado = await servicoAuth.EntrarAsync(request.Email, request.Senha, ct);
+        var resultado = await servicoAuth.EntrarAsync(comando.Email, comando.Senha, ct);
 
         if (!resultado.Sucesso)
             return ErrosAuth.CredenciaisInvalidas;

@@ -1,6 +1,7 @@
+using DieTete.Application.Cqrs;
 using DieTete.Application.PlanoDieta.Commands.EnviarPlanoDieta;
+using DieTete.Application.PlanoDieta.Dtos;
 using DieTete.Application.PlanoDieta.Queries.ObterPlanoDieta;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -9,7 +10,7 @@ namespace DieTete.Api.Controllers;
 
 [Route("api/planos-dieta")]
 [Authorize]
-public class PlanoDietaController(IMediator mediator) : BaseController
+public class PlanoDietaController(IDispatcher dispatcher) : BaseController
 {
     [HttpPost]
     public async Task<IActionResult> Enviar(IFormFile arquivo, CancellationToken ct)
@@ -17,19 +18,16 @@ public class PlanoDietaController(IMediator mediator) : BaseController
         var usuarioId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
         if (arquivo is null || arquivo.Length == 0)
-        {
             return BadRequest("Arquivo não fornecido.");
-        }
 
         using var stream = arquivo.OpenReadStream();
         var comando = new EnviarPlanoDietaComando(
             UsuarioId: usuarioId,
             ConteudoPdf: stream,
             NomeArquivo: arquivo.FileName,
-            TamanhoBytes: arquivo.Length
-        );
+            TamanhoBytes: arquivo.Length);
 
-        var resultado = await mediator.Send(comando, ct);
+        var resultado = await dispatcher.EnviarAsync<EnviarPlanoDietaComando, PlanoDietaDto>(comando, ct);
         return resultado.Match(dto => Ok(dto), TratarErros);
     }
 
@@ -39,7 +37,7 @@ public class PlanoDietaController(IMediator mediator) : BaseController
         var usuarioId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
         var query = new ObterPlanoDietaQuery(id, usuarioId);
-        var resultado = await mediator.Send(query, ct);
+        var resultado = await dispatcher.ConsultarAsync<ObterPlanoDietaQuery, PlanoDietaDto>(query, ct);
         return resultado.Match(dto => Ok(dto), TratarErros);
     }
 }

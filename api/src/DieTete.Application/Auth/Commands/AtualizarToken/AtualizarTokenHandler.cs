@@ -1,22 +1,22 @@
 using DieTete.Application.Auth.Dtos;
+using DieTete.Application.Cqrs;
 using DieTete.Domain.Errors;
 using DieTete.Domain.Interfaces.Services;
 using ErrorOr;
-using MediatR;
 
 namespace DieTete.Application.Auth.Commands.AtualizarToken;
 
 public class AtualizarTokenHandler(
     IServicoAutenticacao servicoAuth,
-    IServicoToken servicoToken) : IRequestHandler<AtualizarTokenComando, ErrorOr<RespostaAutenticacao>>
+    IServicoToken servicoToken) : IManipuladorComando<AtualizarTokenComando, RespostaAutenticacao>
 {
-    public async Task<ErrorOr<RespostaAutenticacao>> Handle(AtualizarTokenComando request, CancellationToken ct)
+    public async Task<ErrorOr<RespostaAutenticacao>> ExecutarAsync(AtualizarTokenComando comando, CancellationToken ct = default)
     {
-        var usuarioIdStr = ExtrairSubDoToken(request.TokenAcesso);
+        var usuarioIdStr = ExtrairSubDoToken(comando.TokenAcesso);
         if (!Guid.TryParse(usuarioIdStr, out var usuarioId))
             return ErrosAuth.TokenInvalido;
 
-        var valido = await servicoAuth.ValidarTokenAtualizacaoAsync(usuarioId, request.TokenAtualizacao, ct);
+        var valido = await servicoAuth.ValidarTokenAtualizacaoAsync(usuarioId, comando.TokenAtualizacao, ct);
         if (!valido)
             return ErrosAuth.TokenInvalido;
 
