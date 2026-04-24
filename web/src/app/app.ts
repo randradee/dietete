@@ -1,15 +1,16 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { HeaderComponent } from './shared/components/header/header.component';
-import { AuthService } from './core/auth/services/auth.service';
+import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, HeaderComponent],
+  imports: [RouterOutlet, HeaderComponent, SidebarComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-header></app-header>
+    <app-sidebar></app-sidebar>
     <main>
       <router-outlet></router-outlet>
     </main>
@@ -21,6 +22,4 @@ import { AuthService } from './core/auth/services/auth.service';
     }
   `],
 })
-export class App {
-  readonly authService = inject(AuthService);
-}
+export class App {}

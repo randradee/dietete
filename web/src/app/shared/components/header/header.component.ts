@@ -7,6 +7,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Toolbar } from 'primeng/toolbar';
 import { Button } from 'primeng/button';
 import { AuthService } from '../../../core/auth/services/auth.service';
+import { LayoutService } from '../../../core/layout/layout.service';
 
 @Component({
   selector: 'app-header',
@@ -16,6 +17,15 @@ import { AuthService } from '../../../core/auth/services/auth.service';
   template: `
     <p-toolbar styleClass="header-toolbar">
       <ng-template #start>
+        @if (authService.estaLogado()) {
+          <p-button
+            icon="pi pi-bars"
+            variant="text"
+            severity="secondary"
+            title="Menu"
+            (onClick)="layout.toggleSidebar()"
+          />
+        }
         <span class="logo">DieTete</span>
 
         @if (authService.estaLogado()) {
@@ -60,7 +70,7 @@ import { AuthService } from '../../../core/auth/services/auth.service';
       font-size: 1.4rem;
       font-weight: bold;
       letter-spacing: 1px;
-      margin-right: 8px;
+      margin: 0 8px;
     }
     .nav-links {
       display: flex;
@@ -75,6 +85,7 @@ import { AuthService } from '../../../core/auth/services/auth.service';
 })
 export class HeaderComponent {
   readonly authService = inject(AuthService);
+  readonly layout = inject(LayoutService);
   private readonly router = inject(Router);
 
   sair(): void {

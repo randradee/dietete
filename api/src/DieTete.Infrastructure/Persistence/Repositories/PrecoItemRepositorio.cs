@@ -19,6 +19,13 @@ public class PrecoItemRepositorio(DieTeteDbContext contexto) : IPrecoItemReposit
             .AsNoTracking()
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<string>> ObterNomesExpiradosAsync(CancellationToken ct = default) =>
+        await contexto.PrecosItens
+            .Where(p => p.ExpiraEm <= DateTime.UtcNow)
+            .Select(p => p.NomeItem)
+            .Distinct()
+            .ToListAsync(ct);
+
     public async Task AdicionarAsync(PrecoItem preco, CancellationToken ct = default) =>
         await contexto.PrecosItens.AddAsync(preco, ct);
 

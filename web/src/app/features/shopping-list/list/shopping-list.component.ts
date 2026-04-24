@@ -14,14 +14,15 @@ import { Button } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { environment } from '../../../../environments/environment';
+import { ShoppingListItemComponent, ItemLista } from '../item/shopping-list-item.component';
 
-interface ItemLista {
+interface ListaComprasResposta {
   id: string;
-  nome: string;
-  quantidade: string;
-  unidade: string;
-  categoria: string;
-  [key: string]: unknown;
+  periodo: string;
+  tipo: string;
+  dataInicio: string;
+  dataFim: string;
+  itens: Omit<ItemLista, 'listaId'>[];
 }
 
 interface GrupoCategoria {
@@ -48,6 +49,7 @@ type Tipo = 'Individual' | 'Unificada';
     Button,
     TableModule,
     Tag,
+    ShoppingListItemComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -119,15 +121,15 @@ type Tipo = 'Individual' | 'Unificada';
                       <th>Quantidade</th>
                       <th>Unidade</th>
                       <th>Categoria</th>
+                      <th style="width:140px">Preço / Ações</th>
                     </tr>
                   </ng-template>
                   <ng-template #body let-item>
-                    <tr>
-                      <td>{{ item.nome }}</td>
-                      <td>{{ item.quantidade }}</td>
-                      <td>{{ item.unidade }}</td>
-                      <td><p-tag [value]="item.categoria" severity="info" /></td>
-                    </tr>
+                    <tr
+                      app-shopping-list-item
+                      [item]="item"
+                      (atualizado)="onItemAtualizado($event)"
+                    ></tr>
                   </ng-template>
                 </p-table>
               </div>
@@ -140,7 +142,7 @@ type Tipo = 'Individual' | 'Unificada';
   styles: [`
     .page-container {
       padding: 24px;
-      max-width: 900px;
+      max-width: 960px;
       margin: 0 auto;
     }
     .controles {
@@ -159,15 +161,8 @@ type Tipo = 'Individual' | 'Unificada';
       color: #757575;
       font-weight: 500;
     }
-    .tabs-periodo {
-      margin-top: 8px;
-    }
-    .tab-content {
-      padding-top: 16px;
-    }
-    .acoes {
-      margin-bottom: 16px;
-    }
+    .tab-content { padding-top: 16px; }
+    .acoes { margin-bottom: 16px; }
     .lista-vazia {
       display: flex;
       flex-direction: column;
@@ -176,9 +171,7 @@ type Tipo = 'Individual' | 'Unificada';
       color: #bdbdbd;
       gap: 16px;
     }
-    .grupo-categoria {
-      margin-bottom: 24px;
-    }
+    .grupo-categoria { margin-bottom: 24px; }
     .categoria-titulo {
       display: flex;
       align-items: center;
@@ -195,9 +188,7 @@ type Tipo = 'Individual' | 'Unificada';
       padding: 2px 8px;
       font-size: 0.75rem;
     }
-    .tabela-itens {
-      width: 100%;
-    }
+    .tabela-itens { width: 100%; }
     .erro-lista {
       color: #f44336;
       padding: 8px;
@@ -212,23 +203,19 @@ export class ShoppingListComponent {
 
   readonly periodo = signal<Periodo>('Semanal');
   readonly tipo = signal<Tipo>('Individual');
-  readonly lista = signal<ItemLista[]>([]);
   readonly grupos = signal<GrupoCategoria[]>([]);
   readonly carregando = signal(false);
   readonly erro = signal<string | null>(null);
+
+  private listaId = '';
 
   readonly opcoesTipo = [
     { label: 'Individual', value: 'Individual' },
     { label: 'Unificada (casal)', value: 'Unificada' },
   ];
 
-  get tipoSelecionado(): Tipo {
-    return this.tipo();
-  }
-
-  set tipoSelecionado(value: Tipo) {
-    this.tipo.set(value);
-  }
+  get tipoSelecionado(): Tipo { return this.tipo(); }
+  set tipoSelecionado(value: Tipo) { this.tipo.set(value); }
 
   onTabChange(index: string | number | undefined): void {
     this.periodo.set(index === 0 ? 'Semanal' : 'Mensal');
@@ -238,26 +225,32 @@ export class ShoppingListComponent {
     this.carregando.set(true);
     this.erro.set(null);
 
-    const payload = {
-      periodo: this.periodo(),
-      tipo: this.tipo(),
-    };
-
     this.http
-      .post<ItemLista[]>(`${environment.apiUrl}/listas-compras/gerar`, payload)
+      .post<ListaComprasResposta>(`${environment.apiUrl}/listas-compras/gerar`, {
+        periodo: this.periodo(),
+        tipo: this.tipo(),
+      })
       .subscribe({
-        next: (itens) => {
-          this.lista.set(itens);
+        next: (dto) => {
+          this.listaId = dto.id;
+          const itens: ItemLista[] = dto.itens.map(i => ({ ...i, listaId: dto.id }));
           this.grupos.set(this.agruparPorCategoria(itens));
           this.carregando.set(false);
         },
         error: (err) => {
           this.carregando.set(false);
-          this.erro.set(
-            err.error?.detail ?? 'Erro ao gerar a lista de compras.'
-          );
+          this.erro.set(err.error?.detail ?? 'Erro ao gerar a lista de compras.');
         },
       });
+  }
+
+  onItemAtualizado(itemAtualizado: ItemLista): void {
+    this.grupos.update(grupos =>
+      grupos.map(g => ({
+        ...g,
+        itens: g.itens.map(i => i.id === itemAtualizado.id ? itemAtualizado : i),
+      }))
+    );
   }
 
   private agruparPorCategoria(itens: ItemLista[]): GrupoCategoria[] {

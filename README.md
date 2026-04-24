@@ -223,3 +223,69 @@ Os PDFs de dieta real estão em `web/e2e/fixtures/` e também em `web/examples/`
 ```
 
 **Importante:** troque `Jwt:Chave` por um segredo de produção antes de qualquer deploy.
+
+---
+
+## Estratégia de Testes
+
+### Decisão: E2E como cobertura primária
+
+Este projeto adota **Playwright E2E** como estratégia principal de testes, sem testes unitários ou de integração isolados. A razão é pragmática: com dois usuários reais, ciclos rápidos de desenvolvimento e uma API que já é pequena e coesa, o custo de manter mocks e stubs supera o benefício para esta escala.
+
+Testes E2E com backend real oferecem:
+- Cobertura de ponta a ponta (parse de PDF → banco → lista de compras → UI)
+- Detecção de regressões entre camadas sem duplicar lógica em mocks
+- Feedback próximo do comportamento real do produto
+
+### Quando adicionar testes de unidade
+
+Teste unitário se justifica para lógica pura isolável:
+- Regex do parser de PDF (`ParsadorPlanoDieta`) — cenários de formato de dieta incomum
+- Algoritmo de agregação da lista de compras — edge cases de unidade/quantidade
+- Funções utilitárias de front-end sem dependência de HTTP
+
+Se o parser crescer em complexidade (novos formatos de nutricionista), adicionar testes unitários para essa classe específica.
+
+### Estrutura dos specs Playwright
+
+| Spec | Cobertura |
+|------|-----------|
+| `01-auth.spec.ts` | Registro, login, persistência de sessão, logout |
+| `02-upload-dieta.spec.ts` | Upload de PDF, feedback de progresso, parse |
+| `03-revisao-dieta.spec.ts` | Itens parseados, destaque de baixa confiança |
+| `04-lista-compras.spec.ts` | Lista semanal/mensal, colunas, edição inline |
+| `05-lista-unificada-casal.spec.ts` | Toggle individual/unificada, diferença de quantidade |
+
+### Fixtures
+
+PDFs de dieta **não são versionados** (dados pessoais de saúde). Para rodar os specs que dependem de PDF:
+
+```
+web/e2e/fixtures/dieta-usuario-a.pdf   ← copie o PDF do primeiro usuário
+web/e2e/fixtures/dieta-usuario-b.pdf   ← copie o PDF do segundo usuário
+```
+
+Specs sem fixture pulam automaticamente via `test.skip`.
+
+### Executar
+
+```bash
+cd web
+
+# Subir backend primeiro
+cd ../api && docker-compose up -d && cd ../web
+
+# Todos os specs
+npx playwright test
+
+# Spec específico
+npx playwright test 01-auth
+
+# Modo visual (debug)
+npx playwright test --ui
+
+# Relatório HTML
+npx playwright show-report
+```
+
+O servidor Angular é iniciado automaticamente pelo Playwright via `webServer` no `playwright.config.ts`.
