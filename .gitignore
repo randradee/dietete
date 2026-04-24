@@ -1,0 +1,49 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.swp
+*.DS_Store
+TestResults/
+*.nupkg
+*.snupkg
+.env
+appsettings.*.local.json
+
+# EF Core migrations snapshot (manter migrations, ignorar snapshots locais de ferramentas)
+# Manter: Migrations/*.cs
+
+# ASP.NET
+**/wwwroot/dist/
+
+# Angular
+web/node_modules/
+web/dist/
+web/.angular/
+web/.sass-cache/
+web/coverage/
+web/playwright-report/
+web/test-results/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Docker volumes / dados locais
+postgres-data/
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+
+# JetBrains
+.idea/
+*.iml
+
+# Arquivos de ambiente
+.env
+.env.*
+!.env.example

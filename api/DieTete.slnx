@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DieTete.Api/DieTete.Api.csproj" />
+    <Project Path="src/DieTete.Application/DieTete.Application.csproj" />
+    <Project Path="src/DieTete.Domain/DieTete.Domain.csproj" />
+    <Project Path="src/DieTete.Infrastructure/DieTete.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DieTete.IntegrationTests/DieTete.IntegrationTests.csproj" />
+    <Project Path="tests/DieTete.UnitTests/DieTete.UnitTests.csproj" />
+  </Folder>
+</Solution>
