@@ -1,0 +1,13 @@
+**/bin
+**/obj
+**/.vs
+**/node_modules
+.git
+.gitignore
+uploads/
+.github
+.vscode
+.DS_Store
+*.user
+*.suo
+appsettings.*.json
