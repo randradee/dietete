@@ -18,6 +18,10 @@ appsettings.*.local.json
 # ASP.NET
 **/wwwroot/dist/
 
+# PDFs de dieta — dados pessoais de saúde, nunca versionar
+web/e2e/fixtures/*.pdf
+web/examples/
+
 # Angular
 web/node_modules/
 web/dist/

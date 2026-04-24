@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
-import { USUARIOS, registrar } from './helpers/auth.helper';
-import { entrarViaApi, injetarToken, registrarViaApi } from './helpers/api.helper';
+import fs from 'fs';
+import { injetarToken, registrarViaApi } from './helpers/api.helper';
 
+// PDFs não estão no repositório — copie seus arquivos locais com estes nomes
 const PDF_A = path.join(__dirname, 'fixtures', 'dieta-usuario-a.pdf');
 const PDF_B = path.join(__dirname, 'fixtures', 'dieta-usuario-b.pdf');
+const temFixtureA = fs.existsSync(PDF_A);
+const temFixtureB = fs.existsSync(PDF_B);
 
 test.describe('Upload de Dieta', () => {
   let tokenA: string;
@@ -31,7 +34,9 @@ test.describe('Upload de Dieta', () => {
     await expect(page.getByRole('button', { name: /selecionar pdf|escolher arquivo/i })).toBeVisible();
   });
 
-  test('faz upload do PDF de dieta do Usuário A', async ({ page }) => {
+  test('faz upload do PDF do usuário A', async ({ page }) => {
+    test.skip(!temFixtureA, 'Fixture dieta-usuario-a.pdf não encontrada — forneça localmente');
+
     const fileInput = page.locator('input[type="file"]');
     await fileInput.setInputFiles(PDF_A);
 
@@ -41,12 +46,12 @@ test.describe('Upload de Dieta', () => {
     await expect(btnEnviar).toBeEnabled();
     await btnEnviar.click();
 
-    // Aguarda redirecionamento para revisão (processamento pode demorar)
     await expect(page).toHaveURL(/dieta\/revisar\//, { timeout: 30_000 });
   });
 
-  test('faz upload do PDF de dieta da Usuário B', async ({ page, request }) => {
-    // Cria conta da Usuário B
+  test('faz upload do PDF do usuário B', async ({ page, request }) => {
+    test.skip(!temFixtureB, 'Fixture dieta-usuario-b.pdf não encontrada — forneça localmente');
+
     const emailB = `upload.b.${Date.now()}@dietete.app`;
     const resB = await registrarViaApi(request, {
       nomeCompleto: 'Usuário B',

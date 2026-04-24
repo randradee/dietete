@@ -2,7 +2,7 @@
 
 ## Pré-requisitos
 
-1. **Backend rodando**: `cd ../dietete-api && docker-compose up -d`
+1. **Backend rodando**: `cd ../api && docker-compose up -d`
 2. **Frontend** é iniciado automaticamente pelo Playwright via `webServer` no config
 
 ## Como rodar
@@ -29,16 +29,22 @@ npm run e2e:report
 | Arquivo | Cenários |
 |---|---|
 | `01-auth.spec.ts` | Login, registro, logout, validações |
-| `02-upload-dieta.spec.ts` | Upload dos PDFs reais do Usuário A e Usuário B |
+| `02-upload-dieta.spec.ts` | Upload de PDFs de dieta (pulado se fixture ausente) |
 | `03-revisao-dieta.spec.ts` | Revisão de itens parseados, itens com baixa confiança |
 | `04-lista-compras.spec.ts` | Geração semanal/mensal, colunas, diferença de quantidades |
 | `05-lista-unificada-casal.spec.ts` | Lista unificada vs individual para o casal |
 
-## Fixtures
+## Fixtures (não versionadas)
 
-Os PDFs reais ficam em `e2e/fixtures/`:
-- `dieta-usuario-a.pdf` — Plano alimentar do Usuário A
-- `dieta-usuario-b.pdf` — Plano alimentar da Usuário B
+Os PDFs de dieta **não estão no repositório** por conterem dados pessoais de saúde.
+Para rodar os testes que dependem de PDF, copie seus arquivos para `e2e/fixtures/` com os nomes:
+
+```
+e2e/fixtures/dieta-usuario-a.pdf
+e2e/fixtures/dieta-usuario-b.pdf
+```
+
+Testes que dependem de fixtures ausentes são pulados automaticamente (`test.skip`).
 
 ## Notas
 
