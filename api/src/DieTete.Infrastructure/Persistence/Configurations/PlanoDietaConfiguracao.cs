@@ -1,4 +1,5 @@
 using DieTete.Domain.Entities;
+using DieTete.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -14,6 +15,10 @@ public class PlanoDietaConfiguracao : IEntityTypeConfiguration<PlanoDieta>
         builder.Property(p => p.CaminhoArquivo).HasMaxLength(500).IsRequired();
         builder.Property(p => p.Status).IsRequired();
         builder.Property(p => p.MensagemErro).HasMaxLength(1000);
+        builder.HasOne<UsuarioAplicacao>()
+            .WithMany()
+            .HasForeignKey(p => p.UsuarioId)
+            .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(p => p.Dias)
             .WithOne()
             .HasForeignKey(d => d.PlanoDietaId)

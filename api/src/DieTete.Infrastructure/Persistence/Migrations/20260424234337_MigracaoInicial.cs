@@ -107,27 +107,6 @@ namespace DieTete.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Usuario",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    NomeCompleto = table.Column<string>(type: "text", nullable: false),
-                    Email = table.Column<string>(type: "text", nullable: false),
-                    GrupoFamiliarId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Usuario", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Usuario_GruposFamiliares_GrupoFamiliarId",
-                        column: x => x.GrupoFamiliarId,
-                        principalTable: "GruposFamiliares",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "ItensListaCompras",
                 columns: table => new
                 {
@@ -170,6 +149,31 @@ namespace DieTete.Infrastructure.Persistence.Migrations
                         name: "FK_PapeisReivindicacoes_Papeis_RoleId",
                         column: x => x.RoleId,
                         principalTable: "Papeis",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PlanosDieta",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UsuarioId = table.Column<Guid>(type: "uuid", nullable: false),
+                    NomeArquivoOriginal = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    CaminhoArquivo = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    MensagemErro = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    ProcessadoEm = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PlanosDieta", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PlanosDieta_Usuarios_UsuarioId",
+                        column: x => x.UsuarioId,
+                        principalTable: "Usuarios",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -255,31 +259,6 @@ namespace DieTete.Infrastructure.Persistence.Migrations
                         name: "FK_UsuariosTokens_Usuarios_UserId",
                         column: x => x.UserId,
                         principalTable: "Usuarios",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PlanosDieta",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UsuarioId = table.Column<Guid>(type: "uuid", nullable: false),
-                    NomeArquivoOriginal = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    CaminhoArquivo = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    MensagemErro = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
-                    ProcessadoEm = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PlanosDieta", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_PlanosDieta_Usuario_UsuarioId",
-                        column: x => x.UsuarioId,
-                        principalTable: "Usuario",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -394,11 +373,6 @@ namespace DieTete.Infrastructure.Persistence.Migrations
                 column: "DiaDietaId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Usuario_GrupoFamiliarId",
-                table: "Usuario",
-                column: "GrupoFamiliarId");
-
-            migrationBuilder.CreateIndex(
                 name: "EmailIndex",
                 table: "Usuarios",
                 column: "NormalizedEmail");
@@ -428,6 +402,9 @@ namespace DieTete.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "GruposFamiliares");
+
             migrationBuilder.DropTable(
                 name: "ItensAlimento");
 
@@ -462,19 +439,13 @@ namespace DieTete.Infrastructure.Persistence.Migrations
                 name: "Papeis");
 
             migrationBuilder.DropTable(
-                name: "Usuarios");
-
-            migrationBuilder.DropTable(
                 name: "DiasDieta");
 
             migrationBuilder.DropTable(
                 name: "PlanosDieta");
 
             migrationBuilder.DropTable(
-                name: "Usuario");
-
-            migrationBuilder.DropTable(
-                name: "GruposFamiliares");
+                name: "Usuarios");
         }
     }
 }

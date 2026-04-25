@@ -24,16 +24,13 @@ public class GerarListaComprasHandler(
 
         if (comando.Tipo == TipoListaCompras.Unificada && comando.GrupoFamiliarId.HasValue)
         {
-            var grupo = await repositorioGrupoFamiliar.ObterPorIdAsync(comando.GrupoFamiliarId.Value, ct);
-            if (grupo is not null)
+            var idsMembros = await repositorioGrupoFamiliar.ObterIdsMembrosAsync(comando.GrupoFamiliarId.Value, ct);
+            foreach (var membroId in idsMembros)
             {
-                foreach (var membro in grupo.Membros)
+                if (membroId != comando.UsuarioId)
                 {
-                    if (membro.Id != comando.UsuarioId)
-                    {
-                        var planosMembro = await repositorioPlanoDieta.ObterPorUsuarioAsync(membro.Id, ct);
-                        planosProcessados.AddRange(planosMembro.Where(p => p.Status == StatusPlanoDieta.Processado));
-                    }
+                    var planosMembro = await repositorioPlanoDieta.ObterPorUsuarioAsync(membroId, ct);
+                    planosProcessados.AddRange(planosMembro.Where(p => p.Status == StatusPlanoDieta.Processado));
                 }
             }
         }

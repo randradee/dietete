@@ -23,6 +23,13 @@ public class GrupoFamiliarRepositorio(DieTeteDbContext contexto) : IGrupoFamilia
             .FirstOrDefaultAsync(g => g.Id == usuario.GrupoFamiliarId, ct);
     }
 
+    public async Task<IReadOnlyList<Guid>> ObterIdsMembrosAsync(Guid grupoId, CancellationToken ct = default) =>
+        await contexto.Users
+            .AsNoTracking()
+            .Where(u => u.GrupoFamiliarId == grupoId)
+            .Select(u => u.Id)
+            .ToListAsync(ct);
+
     public async Task AdicionarAsync(GrupoFamiliar grupo, CancellationToken ct = default) =>
         await contexto.GruposFamiliares.AddAsync(grupo, ct);
 

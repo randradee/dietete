@@ -297,36 +297,6 @@ namespace DieTete.Infrastructure.Persistence.Migrations
                     b.ToTable("Refeicoes", (string)null);
                 });
 
-            modelBuilder.Entity("DieTete.Domain.Entities.Usuario", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("GrupoFamiliarId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("NomeCompleto")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GrupoFamiliarId");
-
-                    b.ToTable("Usuario");
-                });
-
             modelBuilder.Entity("DieTete.Infrastructure.Identity.UsuarioAplicacao", b =>
                 {
                     b.Property<Guid>("Id")
@@ -566,8 +536,8 @@ namespace DieTete.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("DieTete.Domain.Entities.PlanoDieta", b =>
                 {
-                    b.HasOne("DieTete.Domain.Entities.Usuario", null)
-                        .WithMany("PlanosDieta")
+                    b.HasOne("DieTete.Infrastructure.Identity.UsuarioAplicacao", null)
+                        .WithMany()
                         .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -580,13 +550,6 @@ namespace DieTete.Infrastructure.Persistence.Migrations
                         .HasForeignKey("DiaDietaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("DieTete.Domain.Entities.Usuario", b =>
-                {
-                    b.HasOne("DieTete.Domain.Entities.GrupoFamiliar", null)
-                        .WithMany("Membros")
-                        .HasForeignKey("GrupoFamiliarId");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -645,11 +608,6 @@ namespace DieTete.Infrastructure.Persistence.Migrations
                     b.Navigation("Refeicoes");
                 });
 
-            modelBuilder.Entity("DieTete.Domain.Entities.GrupoFamiliar", b =>
-                {
-                    b.Navigation("Membros");
-                });
-
             modelBuilder.Entity("DieTete.Domain.Entities.ListaCompras", b =>
                 {
                     b.Navigation("Itens");
@@ -663,11 +621,6 @@ namespace DieTete.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("DieTete.Domain.Entities.Refeicao", b =>
                 {
                     b.Navigation("Itens");
-                });
-
-            modelBuilder.Entity("DieTete.Domain.Entities.Usuario", b =>
-                {
-                    b.Navigation("PlanosDieta");
                 });
 #pragma warning restore 612, 618
         }
