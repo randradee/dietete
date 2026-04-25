@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dietete-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: dietete
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./api
+    container_name: dietete-api
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=dietete;Username=postgres;Password=postgres"
+      Jwt__Chave: "CHAVE_SECRETA_DEVE_SER_SUBSTITUIDA_EM_PRODUCAO_123456"
+      Jwt__Emissor: "DieTeteApi"
+      Jwt__Audiencia: "DieTeteApp"
+      Jwt__ExpiracaoMinutos: "15"
+      Cors__Origens__0: "http://localhost:4200"
+      ConsultaPrecos__Habilitado: "false"
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_URLS: "http://+:8080"
+    volumes:
+      - uploads:/app/uploads
+    restart: unless-stopped
+
+  web:
+    build: ./web
+    container_name: dietete-web
+    ports:
+      - "4200:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  uploads:

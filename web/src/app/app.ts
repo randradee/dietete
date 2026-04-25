@@ -1,24 +1,21 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { HeaderComponent } from './shared/components/header/header.component';
-import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, HeaderComponent, SidebarComponent],
+  imports: [RouterOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <app-header></app-header>
-    <app-sidebar></app-sidebar>
-    <main>
-      <router-outlet></router-outlet>
-    </main>
-  `,
+  template: `<router-outlet />`,
   styles: [`
-    main {
-      min-height: calc(100vh - 64px);
-      background: #fafafa;
+    :host {
+      display: block;
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--dt-cream);
+      box-shadow: 0 0 40px rgba(0,0,0,.08);
+      position: relative;
     }
   `],
 })

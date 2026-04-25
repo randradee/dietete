@@ -6,15 +6,9 @@ import {
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { NgTemplateOutlet } from '@angular/common';
-import { Card } from 'primeng/card';
-import { Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
-import { SelectButton } from 'primeng/selectbutton';
-import { Button } from 'primeng/button';
-import { TableModule } from 'primeng/table';
-import { Tag } from 'primeng/tag';
-import { environment } from '../../../../environments/environment';
+import { BottomNavComponent } from '../../../shared/components/bottom-nav/bottom-nav.component';
 import { ShoppingListItemComponent, ItemLista } from '../item/shopping-list-item.component';
+import { environment } from '../../../../environments/environment';
 
 interface ListaComprasResposta {
   id: string;
@@ -36,165 +30,215 @@ type Tipo = 'Individual' | 'Unificada';
 @Component({
   selector: 'app-shopping-list',
   standalone: true,
-  imports: [
-    FormsModule,
-    NgTemplateOutlet,
-    Card,
-    Tabs,
-    TabList,
-    Tab,
-    TabPanels,
-    TabPanel,
-    SelectButton,
-    Button,
-    TableModule,
-    Tag,
-    ShoppingListItemComponent,
-  ],
+  imports: [FormsModule, BottomNavComponent, ShoppingListItemComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="page-container">
-      <p-card>
-        <ng-template #title>Lista de Compras</ng-template>
-        <ng-template #subtitle>Gere sua lista com base no plano alimentar</ng-template>
-
-        <div class="controles">
-          <div class="controle-grupo">
-            <label class="controle-label">Tipo de lista:</label>
-            <p-select-button
-              [options]="opcoesTipo"
-              [(ngModel)]="tipoSelecionado"
-              optionLabel="label"
-              optionValue="value"
-            />
+    <div class="screen">
+      <!-- Header -->
+      <div class="list-head">
+        <div class="list-top-row">
+          <span class="list-title">Lista de compras</span>
+          <div class="toggle-row">
+            <div
+              class="toption"
+              [class.on]="tipo() === 'Individual'"
+              (click)="mudarTipo('Individual')"
+            >Individual</div>
+            <div
+              class="toption"
+              [class.on]="tipo() === 'Unificada'"
+              (click)="mudarTipo('Unificada')"
+            >Casal</div>
           </div>
         </div>
+        <div class="period-tabs">
+          <div
+            class="ptab"
+            [class.active]="periodo() === 'Semanal'"
+            (click)="mudarPeriodo('Semanal')"
+          >Semanal</div>
+          <div
+            class="ptab"
+            [class.active]="periodo() === 'Mensal'"
+            (click)="mudarPeriodo('Mensal')"
+          >Mensal</div>
+        </div>
+      </div>
 
-        <p-tabs [value]="0" (valueChange)="onTabChange($event)" styleClass="tabs-periodo">
-          <p-tablist>
-            <p-tab [value]="0">Semanal</p-tab>
-            <p-tab [value]="1">Mensal</p-tab>
-          </p-tablist>
+      <!-- Content -->
+      <div class="content">
+        <div class="acoes-row">
+          <button
+            type="button"
+            class="btn-gerar"
+            [disabled]="carregando()"
+            (click)="gerarLista()"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+            </svg>
+            {{ carregando() ? 'Gerando...' : 'Gerar lista' }}
+          </button>
+        </div>
 
-          <p-tabpanels>
-            <p-tabpanel [value]="0">
-              <ng-container [ngTemplateOutlet]="conteudoLista" />
-            </p-tabpanel>
-            <p-tabpanel [value]="1">
-              <ng-container [ngTemplateOutlet]="conteudoLista" />
-            </p-tabpanel>
-          </p-tabpanels>
-        </p-tabs>
+        @if (erro()) {
+          <div class="error-banner">{{ erro() }}</div>
+        }
 
-        <ng-template #conteudoLista>
-          <div class="tab-content">
-            <div class="acoes">
-              <p-button
-                label="Gerar Lista"
-                icon="pi pi-refresh"
-                [loading]="carregando()"
-                (onClick)="gerarLista()"
-              />
-            </div>
-
-            @if (erro()) {
-              <div class="erro-lista">{{ erro() }}</div>
-            }
-
-            @if (grupos().length === 0 && !carregando() && !erro()) {
-              <div class="lista-vazia">
-                <i class="pi pi-shopping-cart" style="font-size: 48px; color: #bdbdbd;"></i>
-                <p>Nenhum item na lista. Clique em "Gerar Lista" para começar.</p>
-              </div>
-            }
-
-            @for (grupo of grupos(); track grupo.categoria) {
-              <div class="grupo-categoria">
-                <h3 class="categoria-titulo">
-                  <p-tag [value]="grupo.categoria" severity="secondary" />
-                  <span class="badge">{{ grupo.itens.length }}</span>
-                </h3>
-                <p-table [value]="grupo.itens" styleClass="p-datatable-sm tabela-itens">
-                  <ng-template #header>
-                    <tr>
-                      <th>Item</th>
-                      <th>Quantidade</th>
-                      <th>Unidade</th>
-                      <th>Categoria</th>
-                      <th style="width:140px">Preço / Ações</th>
-                    </tr>
-                  </ng-template>
-                  <ng-template #body let-item>
-                    <tr
-                      app-shopping-list-item
-                      [item]="item"
-                      (atualizado)="onItemAtualizado($event)"
-                    ></tr>
-                  </ng-template>
-                </p-table>
-              </div>
-            }
+        @if (grupos().length === 0 && !carregando() && !erro()) {
+          <div class="empty-state">
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--dt-cream-3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 001.99-1.61L23 6H6"/>
+            </svg>
+            <p>Nenhum item na lista.</p>
+            <p>Clique em "Gerar lista" para começar.</p>
           </div>
-        </ng-template>
-      </p-card>
+        }
+
+        @if (grupos().length > 0) {
+          <div class="list-meta">
+            {{ totalItens() }} itens · {{ tipo() === 'Individual' ? 'Individual' : 'Casal' }} · {{ periodo() }}
+          </div>
+
+          @for (grupo of grupos(); track grupo.categoria) {
+            <div class="cat-lbl">{{ grupo.categoria }}</div>
+            @for (item of grupo.itens; track item.id) {
+              <app-shopping-list-item
+                [item]="item"
+                (atualizado)="onItemAtualizado($event)"
+              />
+            }
+          }
+        }
+      </div>
+
+      <app-bottom-nav active="compras" />
     </div>
   `,
   styles: [`
-    .page-container {
-      padding: 24px;
-      max-width: 960px;
-      margin: 0 auto;
-    }
-    .controles {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      margin: 8px 0 16px;
-    }
-    .controle-grupo {
+    .screen {
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      background: var(--dt-cream);
     }
-    .controle-label {
-      font-size: 0.875rem;
-      color: #757575;
+
+    /* Header */
+    .list-head {
+      padding: 14px 16px 0;
+      background: var(--dt-cream);
+    }
+    .list-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .list-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 21px;
+      font-weight: 600;
+      color: var(--dt-text);
+    }
+    .toggle-row {
+      display: inline-flex;
+      border-radius: 99px;
+      padding: 3px;
+      background: var(--dt-cream-2);
+    }
+    .toption {
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 11.5px;
       font-weight: 500;
+      cursor: pointer;
+      color: var(--dt-muted);
     }
-    .tab-content { padding-top: 16px; }
-    .acoes { margin-bottom: 16px; }
-    .lista-vazia {
+    .toption.on {
+      background: var(--dt-white);
+      color: var(--dt-green-600);
+    }
+    .period-tabs {
+      display: flex;
+      border-bottom: 0.5px solid var(--dt-cream-3);
+      margin-top: 12px;
+    }
+    .ptab {
+      flex: 1;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12.5px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      color: var(--dt-muted);
+    }
+    .ptab.active {
+      color: var(--dt-green-600);
+      border-bottom-color: var(--dt-green-600);
+    }
+
+    /* Content */
+    .content {
+      background: var(--dt-cream);
+      padding: 12px 16px 16px;
+      flex: 1;
+    }
+    .acoes-row { margin-bottom: 12px; }
+    .btn-gerar {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: 11px;
+      background: var(--dt-green-800);
+      border: none;
+      color: var(--dt-green-50);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-gerar:hover:not(:disabled) { background: var(--dt-green-700); }
+    .btn-gerar:disabled { opacity: .6; cursor: not-allowed; }
+
+    .error-banner {
+      background: #fff0f0;
+      border: 1px solid #fcc;
+      color: #b00;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .empty-state {
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 48px;
-      color: #bdbdbd;
-      gap: 16px;
+      gap: 6px;
+      padding: 40px 16px;
+      color: var(--dt-muted);
+      font-size: 13px;
+      text-align: center;
     }
-    .grupo-categoria { margin-bottom: 24px; }
-    .categoria-titulo {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 1rem;
-      border-bottom: 2px solid #e0e0e0;
-      padding-bottom: 8px;
-      margin-bottom: 8px;
+
+    .list-meta {
+      font-size: 11px;
+      color: var(--dt-muted);
+      padding: 8px 0 2px;
     }
-    .badge {
-      background: var(--p-primary-color, #1976d2);
-      color: white;
-      border-radius: 12px;
-      padding: 2px 8px;
-      font-size: 0.75rem;
-    }
-    .tabela-itens { width: 100%; }
-    .erro-lista {
-      color: #f44336;
-      padding: 8px;
-      background: #ffebee;
-      border-radius: 4px;
-      margin-bottom: 16px;
+
+    .cat-lbl {
+      font-size: 9.5px;
+      font-weight: 500;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--dt-muted);
+      padding: 11px 0 5px;
     }
   `],
 })
@@ -207,18 +251,18 @@ export class ShoppingListComponent {
   readonly carregando = signal(false);
   readonly erro = signal<string | null>(null);
 
-  private listaId = '';
+  readonly totalItens = () => this.grupos().reduce((acc, g) => acc + g.itens.length, 0);
 
-  readonly opcoesTipo = [
-    { label: 'Individual', value: 'Individual' },
-    { label: 'Unificada (casal)', value: 'Unificada' },
-  ];
+  mudarPeriodo(p: Periodo): void {
+    this.periodo.set(p);
+    this.grupos.set([]);
+    this.erro.set(null);
+  }
 
-  get tipoSelecionado(): Tipo { return this.tipo(); }
-  set tipoSelecionado(value: Tipo) { this.tipo.set(value); }
-
-  onTabChange(index: string | number | undefined): void {
-    this.periodo.set(index === 0 ? 'Semanal' : 'Mensal');
+  mudarTipo(t: Tipo): void {
+    this.tipo.set(t);
+    this.grupos.set([]);
+    this.erro.set(null);
   }
 
   gerarLista(): void {
@@ -232,7 +276,6 @@ export class ShoppingListComponent {
       })
       .subscribe({
         next: (dto) => {
-          this.listaId = dto.id;
           const itens: ItemLista[] = dto.itens.map(i => ({ ...i, listaId: dto.id }));
           this.grupos.set(this.agruparPorCategoria(itens));
           this.carregando.set(false);

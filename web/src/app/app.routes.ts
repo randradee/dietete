@@ -2,25 +2,27 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/lista-compras', pathMatch: 'full' },
+  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
   {
     path: 'auth',
     children: [
       {
         path: 'login',
         loadComponent: () =>
-          import('./features/auth/login/login.component').then(
-            (m) => m.LoginComponent
-          ),
+          import('./features/auth/login/login.component').then(m => m.LoginComponent),
       },
       {
         path: 'registrar',
         loadComponent: () =>
-          import('./features/auth/register/register.component').then(
-            (m) => m.RegisterComponent
-          ),
+          import('./features/auth/register/register.component').then(m => m.RegisterComponent),
       },
     ],
+  },
+  {
+    path: 'dashboard',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent),
   },
   {
     path: 'dieta',
@@ -29,16 +31,12 @@ export const routes: Routes = [
       {
         path: 'enviar',
         loadComponent: () =>
-          import('./features/diet/upload/diet-upload.component').then(
-            (m) => m.DietUploadComponent
-          ),
+          import('./features/diet/upload/diet-upload.component').then(m => m.DietUploadComponent),
       },
       {
         path: 'revisar/:id',
         loadComponent: () =>
-          import('./features/diet/review/diet-review.component').then(
-            (m) => m.DietReviewComponent
-          ),
+          import('./features/diet/review/diet-review.component').then(m => m.DietReviewComponent),
       },
     ],
   },
@@ -46,9 +44,7 @@ export const routes: Routes = [
     path: 'lista-compras',
     canActivate: [authGuard],
     loadComponent: () =>
-      import(
-        './features/shopping-list/list/shopping-list.component'
-      ).then((m) => m.ShoppingListComponent),
+      import('./features/shopping-list/list/shopping-list.component').then(m => m.ShoppingListComponent),
   },
-  { path: '**', redirectTo: '/lista-compras' },
+  { path: '**', redirectTo: '/dashboard' },
 ];

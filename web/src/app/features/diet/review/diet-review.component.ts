@@ -2,16 +2,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Card } from 'primeng/card';
-import { Button } from 'primeng/button';
-import { Tag } from 'primeng/tag';
-import { TableModule } from 'primeng/table';
-import { LoadingSpinnerComponent } from '../../../shared/components/loading-spinner/loading-spinner.component';
+import { TopNavComponent } from '../../../shared/components/top-nav/top-nav.component';
 import { environment } from '../../../../environments/environment';
 
 interface ItemDieta {
@@ -20,6 +17,8 @@ interface ItemDieta {
   quantidade: string;
   unidade: string;
   pontuacaoConfianca: number;
+  diaSemana?: string;
+  nomeRefeicao?: string;
   [key: string]: unknown;
 }
 
@@ -31,171 +30,282 @@ interface PlanoDieta {
   [key: string]: unknown;
 }
 
+interface GrupoRefeicao {
+  nome: string;
+  ok: boolean;
+  itens: ItemDieta[];
+}
+
+interface GrupoDia {
+  dia: string;
+  refeicoes: GrupoRefeicao[];
+}
+
 @Component({
   selector: 'app-diet-review',
   standalone: true,
-  imports: [
-    Card,
-    Button,
-    Tag,
-    TableModule,
-    LoadingSpinnerComponent,
-  ],
+  imports: [TopNavComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="page-container">
-      <p-card>
-        <ng-template #title>Revisão da Dieta</ng-template>
-        @if (plano()) {
-          <ng-template #subtitle>Arquivo: {{ plano()!.nomeArquivo }}</ng-template>
-        }
+    <div class="screen">
+      <app-top-nav
+        [title]="plano() ? 'Revisão — ' + nomeArquivoSimples() : 'Revisão'"
+        (voltar)="router.navigate(['/dieta/enviar'])"
+      />
 
+      <div class="content">
         @if (carregando()) {
-          <app-loading-spinner />
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Carregando plano...</p>
+          </div>
         } @else if (erro()) {
-          <div class="erro-container">
-            <i class="pi pi-exclamation-circle" style="font-size: 2rem; color: #e53935;"></i>
+          <div class="error-state">
             <p>{{ erro() }}</p>
-            <p-button label="Tentar novamente" variant="text" (onClick)="carregarPlano()" />
+            <button class="btn-link" (click)="carregarPlano()">Tentar novamente</button>
           </div>
         } @else if (plano()) {
-          <div class="resumo">
-            <p>
-              <strong>{{ itensNormais().length }}</strong> itens identificados com confiança.
-            </p>
-            @if (itensParaRevisao().length > 0) {
-              <div class="aviso-revisao">
-                <i class="pi pi-exclamation-triangle" style="color: #f57c00;"></i>
-                <span>
-                  <strong>{{ itensParaRevisao().length }}</strong> itens precisam de revisão
-                  (confiança abaixo de 50%).
-                </span>
-              </div>
-            }
+          <!-- Summary bar -->
+          <div class="summary-bar">
+            <div class="sb-item">
+              <span class="sb-val">{{ totalItens() }}</span>
+              <span class="sb-lbl">extraídos</span>
+            </div>
+            <div class="sb-item">
+              <span class="sb-val">{{ itensOk() }}</span>
+              <span class="sb-lbl">confirmados</span>
+            </div>
+            <div class="sb-item">
+              <span class="sb-val sb-val-warn">{{ itensRevisar() }}</span>
+              <span class="sb-lbl">revisar</span>
+            </div>
           </div>
 
-          @if (itensParaRevisao().length > 0) {
-            <h3 class="secao-titulo">
-              <i class="pi pi-exclamation-triangle" style="color: #f57c00;"></i>
-              Itens para Revisão
-            </h3>
-            <p-table [value]="itensParaRevisao()" styleClass="p-datatable-sm tabela-itens">
-              <ng-template #header>
-                <tr>
-                  <th>Descrição</th>
-                  <th>Quantidade</th>
-                  <th>Confiança</th>
-                  <th>Status</th>
-                </tr>
-              </ng-template>
-              <ng-template #body let-item>
-                <tr class="linha-revisao">
-                  <td>{{ item.descricao }}</td>
-                  <td>{{ item.quantidade }} {{ item.unidade }}</td>
-                  <td>{{ (item.pontuacaoConfianca * 100).toFixed(0) }}%</td>
-                  <td><p-tag severity="warn" value="Revisar" /></td>
-                </tr>
-              </ng-template>
-            </p-table>
-          }
-
-          @if (itensNormais().length > 0) {
-            <h3 class="secao-titulo" style="margin-top: 20px;">
-              <i class="pi pi-check-circle" style="color: var(--p-primary-color, #1976d2);"></i>
-              Itens Confirmados
-            </h3>
-            <p-table [value]="itensNormais()" styleClass="p-datatable-sm tabela-itens">
-              <ng-template #header>
-                <tr>
-                  <th>Descrição</th>
-                  <th>Quantidade</th>
-                  <th>Confiança</th>
-                  <th>Status</th>
-                </tr>
-              </ng-template>
-              <ng-template #body let-item>
-                <tr>
-                  <td>{{ item.descricao }}</td>
-                  <td>{{ item.quantidade }} {{ item.unidade }}</td>
-                  <td>{{ (item.pontuacaoConfianca * 100).toFixed(0) }}%</td>
-                  <td><p-tag severity="success" value="OK" /></td>
-                </tr>
-              </ng-template>
-            </p-table>
-          }
-        }
-
-        @if (!carregando() && plano()) {
-          <ng-template #footer>
-            <div class="card-actions">
-              <p-button
-                label="Gerar Lista de Compras"
-                icon="pi pi-shopping-cart"
-                (onClick)="gerarListaCompras()"
-              />
+          <!-- Day blocks -->
+          @for (grupo of gruposDia(); track grupo.dia) {
+            <div class="day-block">
+              <div class="day-head">{{ grupo.dia }}</div>
+              @for (ref of grupo.refeicoes; track ref.nome) {
+                <div class="ref-row">
+                  <div class="rdot" [class.rdot-ok]="ref.ok" [class.rdot-warn]="!ref.ok"></div>
+                  <div class="ref-info">
+                    <div class="rname">{{ ref.nome }}</div>
+                    <div class="ritems">
+                      @for (item of ref.itens; track item.id; let last = $last) {
+                        @if (item.pontuacaoConfianca < 0.5) {
+                          <span class="rwarn">{{ item.descricao }}</span>
+                        } @else {
+                          {{ item.descricao }}
+                        }
+                        @if (!last) { · }
+                      }
+                    </div>
+                  </div>
+                  <span class="badge" [class.badge-ok]="ref.ok" [class.badge-warn]="!ref.ok">
+                    {{ ref.ok ? 'OK' : 'Revisar' }}
+                  </span>
+                </div>
+              }
             </div>
-          </ng-template>
+          }
+
+          <button type="button" class="btn-primary" (click)="confirmarEGerarLista()">
+            Confirmar e gerar lista
+          </button>
         }
-      </p-card>
+      </div>
     </div>
   `,
   styles: [`
-    .page-container {
-      padding: 24px;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    .resumo {
-      margin: 16px 0;
-      padding: 12px;
-      background: #f5f5f5;
-      border-radius: 8px;
-    }
-    .aviso-revisao {
+    .screen {
+      min-height: 100vh;
       display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #f57c00;
-      margin-top: 8px;
+      flex-direction: column;
+      background: var(--dt-cream);
     }
-    .secao-titulo {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 16px 0 8px;
-      font-size: 1rem;
+    .content {
+      background: var(--dt-cream);
+      padding: 14px 16px;
+      flex: 1;
     }
-    .linha-revisao {
-      background: #fff8e1;
-    }
-    .erro-container {
+
+    /* Loading / error */
+    .loading, .error-state {
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 32px;
-      color: #757575;
       gap: 12px;
+      padding: 48px 16px;
+      color: var(--dt-muted);
+      font-size: 13px;
+      text-align: center;
     }
-    .tabela-itens {
-      width: 100%;
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--dt-cream-2);
+      border-top-color: var(--dt-green-600);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
     }
-    .card-actions {
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--dt-green-600);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* Summary bar */
+    .summary-bar {
+      border-radius: 14px;
+      padding: 13px 16px;
       display: flex;
-      justify-content: flex-end;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      background: var(--dt-green-800);
     }
+    .sb-item { text-align: center; }
+    .sb-val {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 600;
+      display: block;
+      color: #fff;
+    }
+    .sb-val-warn { color: #fde68a; }
+    .sb-lbl { font-size: 9.5px; display: block; color: rgba(255,255,255,.45); }
+
+    /* Day block */
+    .day-block {
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 9px;
+      border: 0.5px solid var(--dt-cream-3);
+    }
+    .day-head {
+      padding: 9px 14px;
+      font-size: 9.5px;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      background: #eaf3de;
+      color: var(--dt-green-600);
+      border-bottom: 0.5px solid var(--dt-cream-3);
+    }
+    .ref-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 11px 14px;
+      border-bottom: 0.5px solid #f0ece4;
+      background: var(--dt-white);
+    }
+    .ref-row:last-child { border-bottom: none; }
+    .rdot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+    .rdot-ok { background: var(--dt-green-500); }
+    .rdot-warn { background: var(--dt-warn); }
+    .ref-info { flex: 1; }
+    .rname { font-size: 12.5px; font-weight: 500; color: var(--dt-text); }
+    .ritems { font-size: 11px; color: var(--dt-muted); margin-top: 2px; line-height: 1.5; }
+    .rwarn { color: var(--dt-warn); }
+    .badge {
+      font-size: 10.5px;
+      font-weight: 500;
+      padding: 3px 9px;
+      border-radius: 99px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .badge-ok { background: #eaf3de; color: var(--dt-green-600); }
+    .badge-warn { background: var(--dt-warn-bg); color: #b45309; }
+
+    /* Confirm button */
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 50px;
+      border-radius: 13px;
+      background: var(--dt-green-800);
+      border: none;
+      color: var(--dt-green-50);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn-primary:hover { background: var(--dt-green-700); }
   `],
 })
 export class DietReviewComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
+  readonly router = inject(Router);
   private readonly http = inject(HttpClient);
 
   readonly carregando = signal(false);
   readonly erro = signal<string | null>(null);
   readonly plano = signal<PlanoDieta | null>(null);
 
-  readonly itensParaRevisao = signal<ItemDieta[]>([]);
-  readonly itensNormais = signal<ItemDieta[]>([]);
+  readonly totalItens = computed(() => this.plano()?.itens.length ?? 0);
+  readonly itensOk = computed(() => (this.plano()?.itens ?? []).filter(i => i.pontuacaoConfianca >= 0.5).length);
+  readonly itensRevisar = computed(() => (this.plano()?.itens ?? []).filter(i => i.pontuacaoConfianca < 0.5).length);
+
+  readonly nomeArquivoSimples = computed(() => {
+    const nome = this.plano()?.nomeArquivo ?? '';
+    return nome.replace('.pdf', '').slice(0, 20);
+  });
+
+  readonly gruposDia = computed<GrupoDia[]>(() => {
+    const itens = this.plano()?.itens ?? [];
+    if (itens.length === 0) return [];
+
+    const temDias = itens.some(i => i.diaSemana);
+
+    if (temDias) {
+      const mapaD = new Map<string, Map<string, ItemDieta[]>>();
+      for (const item of itens) {
+        const dia = item.diaSemana ?? 'Geral';
+        const ref = item.nomeRefeicao ?? 'Refeição';
+        if (!mapaD.has(dia)) mapaD.set(dia, new Map());
+        const mapaR = mapaD.get(dia)!;
+        if (!mapaR.has(ref)) mapaR.set(ref, []);
+        mapaR.get(ref)!.push(item);
+      }
+      return Array.from(mapaD.entries()).map(([dia, mapaR]) => ({
+        dia,
+        refeicoes: Array.from(mapaR.entries()).map(([nome, itensR]) => ({
+          nome,
+          ok: itensR.every(i => i.pontuacaoConfianca >= 0.5),
+          itens: itensR,
+        })),
+      }));
+    }
+
+    const mapaR = new Map<string, ItemDieta[]>();
+    for (const item of itens) {
+      const ref = item.nomeRefeicao ?? 'Todos os itens';
+      if (!mapaR.has(ref)) mapaR.set(ref, []);
+      mapaR.get(ref)!.push(item);
+    }
+    return [{
+      dia: 'Plano alimentar',
+      refeicoes: Array.from(mapaR.entries()).map(([nome, itensR]) => ({
+        nome,
+        ok: itensR.every(i => i.pontuacaoConfianca >= 0.5),
+        itens: itensR,
+      })),
+    }];
+  });
 
   ngOnInit(): void {
     this.carregarPlano();
@@ -203,10 +313,7 @@ export class DietReviewComponent implements OnInit {
 
   carregarPlano(): void {
     const id = this.route.snapshot.paramMap.get('id');
-    if (!id) {
-      this.erro.set('ID do plano não encontrado.');
-      return;
-    }
+    if (!id) { this.erro.set('ID do plano não encontrado.'); return; }
 
     this.carregando.set(true);
     this.erro.set(null);
@@ -216,21 +323,16 @@ export class DietReviewComponent implements OnInit {
       .subscribe({
         next: (plano) => {
           this.plano.set(plano);
-          const itens = plano.itens ?? [];
-          this.itensParaRevisao.set(itens.filter((i) => i.pontuacaoConfianca < 0.5));
-          this.itensNormais.set(itens.filter((i) => i.pontuacaoConfianca >= 0.5));
           this.carregando.set(false);
         },
         error: (err) => {
           this.carregando.set(false);
-          this.erro.set(
-            err.error?.detail ?? 'Erro ao carregar o plano de dieta.'
-          );
+          this.erro.set(err.error?.detail ?? 'Erro ao carregar o plano de dieta.');
         },
       });
   }
 
-  gerarListaCompras(): void {
+  confirmarEGerarLista(): void {
     this.router.navigate(['/lista-compras']);
   }
 }
