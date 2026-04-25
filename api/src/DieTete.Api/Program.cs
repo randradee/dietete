@@ -2,8 +2,10 @@ using System.Text;
 using DieTete.Api.Middleware;
 using DieTete.Application;
 using DieTete.Infrastructure;
+using DieTete.Infrastructure.Identity;
 using DieTete.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -75,6 +77,10 @@ if (app.Environment.IsDevelopment())
     using var escopo = app.Services.CreateScope();
     var db = escopo.ServiceProvider.GetRequiredService<DieTeteDbContext>();
     await db.Database.MigrateAsync();
+
+    var gerenciadorUsuarios = escopo.ServiceProvider.GetRequiredService<UserManager<UsuarioAplicacao>>();
+    var gerenciadorPapeis = escopo.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+    await SeederDesenvolvimento.SeedAsync(gerenciadorUsuarios, gerenciadorPapeis);
 }
 
 app.UseCors();
